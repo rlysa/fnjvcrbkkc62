@@ -1,0 +1,161 @@
+sudo apt install postgresql
+sudo systemctl status postgresql-<version>-.service
+sudo postgresql-<version>--setup initdb
+sudo systemctl start postgresql-<version>-.service (если не запущена)
+sudo systemctl enable postgresql-<version>-.service (если не добавлена)
+sudo -u postgres psql
+
+CREATE USER "kscdbadmin" WITH PASSWORD '<пароль>';
+CREATE DATABASE "kav" ENCODING 'UTF8' OWNER "kscdbadmin";
+GRANT ALL PRIVILEGES ON DATABASE "kav" TO "kscdbadmin";
+GRANT USAGE ON SCHEMA public TO "kscdbadmin";
+GRANT CREATE ON SCHEMA public TO "kscdbadmin";
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "public" TO "kscdbadmin";
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "public" TO "kscdbadmin";
+Если возникает ошибка "New encoding (UTF8) is incompatible with the encoding of the template database", создайте базу данных с помощью команды:
+CREATE DATABASE "kav" ENCODING 'UTF8' OWNER "kscdbadmin" TEMPLATE template0;
+вместо: CREATE DATABASE "kav" ENCODING 'UTF8' OWNER "kscdbadmin";
+
+Повторите все шаги, чтобы создать другую учетную запись СУБД для IAM с другим именем. База данных для IAM должна быть создана вручную.
+
+CREATE USER "iamdbadmin" WITH PASSWORD '<пароль>';
+CREATE DATABASE "iam" ENCODING 'UTF8' OWNER "iamdbadmin";
+GRANT ALL PRIVILEGES ON DATABASE "iam" TO "iamdbadmin";
+GRANT USAGE ON SCHEMA public TO "iamdbadmin";
+GRANT CREATE ON SCHEMA public TO "iamdbadmin";
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "public" TO "iamdbadmin";
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "public" TO "iamdbadmin";
+
+ulimit -s, чтобы получить это значение в КБ,  минус 1 МБ  (Пример 8192 – 1000 ≈ 7 MB) 
+/var/lib/pgsql/<Версия>/data/postgresql.conf
+shared_buffers = 25% от объема ОЗУ, на котором установлена СУБД
+Если ОЗУ < 1 ГБ, то оставьте значение по умолчанию.
+max_stack_depth = максимальный размер стека (выполните команду 'ulimit -s', чтобы получить это значение в КБ) минус 1 МБ *Берем значение из пункта 1. 
+temp_buffers = 24MB
+work_mem = 16MB
+max_connections = 151
+max_parallel_workers_per_gather = 0
+maintenance_work_mem = 128MB
+Перезапустить или перезагрузить сервер после обновления файла postgresql.conf, чтобы изменения вступили в силу.
+
+Настроить pg_hba.conf по аналогии со скрином
+/etc/postgresql/<verison>/main/pg_hba.conf
+# local is for Unix
+local all iamdbadmin scram-sha-256
+local all kscdbadmin scram-sha-256
+
+
+KSC
+hostnamectl set-hostname ksc.local
+adduser ksc
+groupadd kladmins
+gpasswd -a ksc kladmins
+usermod -g kladmins ksc
+adduser ksciam
+gpasswd -a ksciam kladmins
+usermod -g kladmins ksciam
+sudo apt  install /<path>/ksc64_[номер_версии]_(amd64.deb / .x86_64.rpm -y )
+
+/opt/kaspersky/ksc64/lib/bin/setup/postinstall.pl
+Принять Лицензионное соглашение – Y
+Принять Политику конфиденциальности – Y 
+Введите DNS-имя Сервера администрирования или статический IP-адрес. Этот адрес будет использоваться другими устройствами для подключения к Серверу администрирования. (Пример 10.70.41.81)
+Введите номер SSL-порта Сервера администрирования. По умолчанию номер порта – 13000. 
+Оцените примерное количество устройств, которыми вы планируете управлять [1-100 ввод 1, 101-1000 ввод 2, более 1000 ввод 3]
+Введите имя группы безопасности для служб. По умолчанию используется группа kladmins.
+Введите имя учетной записи для запуска службы Сервера администрирования. Учетная запись должна быть членом указанной группы безопасности. По умолчанию используется учетная запись ksc.
+Введите имя учетной записи, чтобы запустить другие службы. Учетная запись должна быть членом указанной группы безопасности. По умолчанию используется учетная запись ksc.
+Выберите СУБД, которую вы установили с Kaspersky Security Center Linux
+Введите DNS-имя или IP-адрес устройства, на котором установлена база данных. Для локальной установки СУБД адрес по умолчанию – 127.0.0.1.
+Введите номер порта базы данных. Этот порт используется для связи с Сервером администрирования. (5432)
+Введите имя базы данных kav 
+Введите имя учетной записи администратора базы данных, которая используется для доступа к базе данных kscdbadmin
+Введите пароль учетной записи администратора базы данных, которая используется для доступа к базе данных 
+Введите FQDN сервера IAM – Задать IP сервера (пример 10.70.41.81)
+Введите имя учетной записи для запуска службы IAM. Учетная запись должна быть членом указанной группы безопасности. По умолчанию используется учетная запись ksciam.
+Выберите СУБД, которую вы установили для работы со службой IAM
+Введите DNS-имя или IP-адрес устройства, на котором установлена база данных. Для локальной установки СУБД адрес по умолчанию – 127.0.0.1.
+Введите номер порта базы данных. Этот порт используется для связи с Сервером администрирования. (5432)
+Введите имя базы данных IAM, которое будет использоваться службой IAM iam
+Введите имя учетной записи базы данных, которая используется для доступа к базе данных IAM  iamdbadmin
+Введите пароль учетной записи базы данных, которая используется для доступа к базе данных IAM
+Подождите, пока службы добавятся и запустятся автоматически.
+Создайте учетную запись, которая будет выполнять роль администратора Сервера администрирования. Введите имя пользователя и пароль
+
+# systemctl status klnagent_srv.service
+# systemctl status kladminserver_srv.service
+# systemctl status klactprx_srv.service
+# systemctl status klwebsrv_srv.service
+
+web console
+sudo nano /etc/ksc-web-console-setup.json
+{
+    "address": "IP", ----------
+    "port": 8080,
+    "defaultLangId": 1049,
+    "trusted":  {
+        "Сервер администрирования v16": {
+            "iamHost": " IP ", ----------
+            "iamOAuthPort": 4444,
+            "iamProxyPort": 9050,
+            "iamCertPath": "/var/opt/kaspersky/klnagent_srv/iam/main_certificate.pem",
+            "iamPATPath": "/var/opt/kaspersky/klnagent_srv/iam/initial_token.txt",
+            "kscPort": 13299,
+            "kscCertPath": "/var/opt/kaspersky/klnagent_srv/1093/cert/klserver.cer"
+        }
+    },
+    "certDomain":" IP ", ------------
+    "acceptEula": true
+}
+
+sudo apt ksc-web-console-[номер_версии].amd64.deb\
+sudo systemctl restart KSC*
+https://support.kaspersky.ru/9333
+1.	В главном окне программы перейти в раздел /Параметры /Веб-плагины.
+2.	В появившемся окне нажать кнопку «Добавить».
+3.	Отобразится список доступных плагинов управления.
+4.	В списке доступных плагинов выбрать имя плагина, который требуется загрузить (например, Kaspersky Endpoint Security для Linux).
+5.	Отобразится страница с описанием плагина.
+6.	На странице описания плагина нажать кнопку «Установить плагин».
+7.	После завершения установки нажать кнопку «ОК».
+8.	Плагин управления будет загружен в конфигурации по умолчанию и появится в списке плагинов управления.
+
+
+Клиент (Агент):
+sudo apt-get install ./klnagent64_<номер сборки>_<архитектура>.deb
+sudo /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl
+Принять условия лицензионного соглашения
+Указать DNS-имя или IP-адрес Сервера администрирования (Пример 10.70.41.81)
+Укажите номер порта Сервера администрирования. По умолчанию используется порт 14000. [Enter]
+Если вы хотите использовать SSL-соединение, укажите номер SSL-порта Сервера администрирования. По умолчанию используется порт 13000. [Enter]
+Введите yes, чтобы использовать SSL-соединение. Введите no, чтобы не использовать SSL-соединение.
+Укажите режим использования шлюза соединений.
+1 – не настраивать шлюз соединений.
+2 – не использовать шлюз соединений.
+3 – подключаться к Серверу администрирования через шлюз соединений.
+4 – использовать Агент администрирования в качестве шлюза соединений.
+По умолчанию используется вариант 1. [1]
+
+kesl
+sudo apt-get install ./kesl_11.0.0<номер сборки>_<архитектура>.deb
+sudo /opt/kaspersky/kesl/bin/kesl-setup.pl
+На экран будут выводится запросы, в которых необходимо указать:
+	Использовать локаль «ru_RU.UTF-8»;
+	Принять условия EULA – нажать клавишу «Enter» для отображения документа, затем клавишу «Q» для закрытия документа, затем клавишу «Y» для принятия условий;
+	Принять соглашение с условиями политики – клавиша «Y»;
+	Отказаться от участия в KSN – клавиша «N»;
+	Отказаться от использования интерфейса KESL – клавиша «N»;
+После этого, должно появиться предупреждение о том, что на компьютере обнаружен Агент администрирования и настройка дополнительных (нижеуказанных) параметров определяется сервером администрирования KSC.
+В случае, если KESL установлен на компьютер без Агента администрирования, на экран будут выводится запросы, в которых необходимо указать:
+Используемый источник обновлений «SCServer»;
+Использование прокси-сервера – клавиша «N»;
+Обновление антивирусных баз – клавиша «Y»;
+Автоматическое обновление баз – клавиша «Y»;
+Код активации – ввести код активации, указанный в файле KEY;
+
+
+
+
+
+
+

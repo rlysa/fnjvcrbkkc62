@@ -1,0 +1,75 @@
+tar -xvf
+/etc/apt/sources.list (раском 2, 4) + apt update
+install dnsutils
+/etc/apt/sources.list (заком 2, 4) + apt update
+./install-aio.sh
+logspace-ru
+
+web
+mc активация платформы привяз лиц
+docker restart $ (docker ps -q -a)
+
+kb
+siem контент бд
+свзять ветку все галочки
+
+siem пакеты экспертизы
+1. бд созданная, набор уст. + , назв, все объекты, 3кн справа наборы установки и добавить
+2. бд сделать установочной
+3. редактировать в пакетах экспертизы
+
+постановка драйверов
+sudo nano /etc/apt/sources.list - раскомментировать репозитории Main и Base и сохранитьmфайл
+sudo apt update 
+sudo apt install odbcinst unixodbc unixodbc-dev odbc-postgresql
+sudo nano /etc/odbcinst.ini
+[PostgreSQL ANSI]
+Description=PostgreSQL ODBC driver (ANSI version)
+Driver=/usr/lib/x86_64-linux-gnu/odbc/psqlodbca.so
+Setup=/usr/lib/x86_64-linux-gnu/odbc/libodbcpsqlS.so
+Debug=0
+CommLog=1
+UsageCount=1
+[PostgreSQL Unicode]
+Description=PostgreSQL ODBC driver (Unicode version)
+Driver=/usr/lib/x86_64-linux-gnu/odbc/psqlodbcw.so
+Setup=/usr/lib/x86_64-linux-gnu/odbc/libodbcpsqlS.so
+Debug=0
+CommLog=1
+UsageCount=1
+
+odbcinst -q -d
+Пример успешной проверки:
+[PostgreSQL ANSI]
+[PostgreSQL Unicode]
+
+на ksc
+sudo su 
+su postgres
+psql
+CREATE USER SIEM0 WITH LOGIN PASSWORD 'P@ssw0rdTI';
+\l - для просмотра списка БД
+GRANT CONNECT ON DATABASE kav TO SIEM0
+\dn - для просмотра списка схем
+\c kav - упасть в БД
+GRANT USAGE ON SCHEMA public TO SIEM0;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO SIEM0;
+\q - выход
+удал доступ
+sudo find / -type f -name pg_hba.conf
+nano /etc/postgresql/15/main/pg_hba.conf
+добавить host kav SIEM0 10.220.187.130/32 scram-sha-256
+systemctl restart postgresql
+проверка с коллектора isql -v -k "Driver={PostgreSQL Unicode};Server=10.220.190.9;Port=5432;Uid=siem0;Pwd=P@ssw0rdTI;Database=kav;sslmode=prefer;pqopt={keepalives=1 keepalives_idle=5 keepalives_count=1 keepalives_interval=1};
+
+mp10
+сбор данных, задачи, созадть задачу, сбор данных
+для ksc добавитьь учетку (домен -) логин, пароль из созданной уз на psql 
+
+в руководстве разраба правила нормализации
+kb siem
+схема полей событий
+siem выбор версий sdk
+siem пакеты экспертизы: правила норм и кор
++ валидация и установка в siem
+
