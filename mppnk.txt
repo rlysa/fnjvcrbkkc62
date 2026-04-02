@@ -1,0 +1,63 @@
+# <30>1 2026-03-19T12:05:01+03:00 ngfw3 web-proxy - - - domain:155.212.204.140, uri:, categories:['Запрещенные сайты','УБОГИЙ MAX'], incoming_traffic:0, outgoing_traffic:0, traffic_amount:0, action:deny, blocked_reason:['УБОГИЙ MAX'], redirected_to:, rule_name:VikaDontLikeMax, source_ip:10.10.51.10, source_port:55257, destination_ip:155.212.204.140, destination_port:443, proto_info:AUTHORITY_FORM/1.1, method:CONNECT, status_code:0, mime:, useragent:, user_name:admin, login:admin, group_name:stend, referer:, vce_id:00000000-0000-0000-0000-000000000000, vce_name:Системный контекст
+
+TEXT = '<{NUMBER?}> {NUMBER} {time=DATETIME?} {event_src.ip=IPV4|event_src.ip=IPV6|event_src.fqdn=HOSTNAME} web-proxy --- {$f=KEYVALUE(",",":","")}'
+
+action = "detect"
+object = "connection"
+status = "failure"
+
+dst.ip = $f["domain"]
+
+$ff = $f["categories"]
+$fff = replace(replace($ff, "", "["), "", "]")
+datafield2 = csv($fff, ",", "\'")[0]
+datafield3 = csv($fff, ",", "\'")[1]
+datafield4 = $f["source_ip"]
+datafield5 = "user_name: " + $f["user_name"] + ", login: " + $f["login"]
+
+importance = "low"
+
+id = "PT_IDECO_detect_block”
+
+
+
+event MAX:
+    key:
+    event_src.ip
+    filter {
+        correlation_name == null
+        and id == "TI_IDECO_syslog_detect_block"
+    }
+    
+rule AtomSkills_Detect_Connect_To_Max: MAX+ timer 1m
+    on MAX {
+
+        $dst.ip =  dst.ip 
+        $datafield3 = datafield3
+
+        $event_src.rule = event_src.rule
+        $src.ip = src.ip
+        $src.port = src.port
+        $dst.port = dst.port
+        $subject.account.name = subject.account.name
+        
+        $status = status
+        $object = object
+        $action = action
+    }
+    
+    emit {
+
+        $correlation_type = "incident"
+        
+        $importance = "medium"
+
+        $category.generic = "Attack"
+        $category.high = "Discovery"
+        $category.low = "System Information Discovery"
+
+        $incident.aggregation.key = join([$correlation_name, $event_src.host, $subject.account.name], "|")
+        $incident.severity = $importance
+        $incident.category = "SoftwareSuspiciousActivity" 
+        $incident.aggregation.timeout = 2h
+    }
