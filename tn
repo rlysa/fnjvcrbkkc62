@@ -1,0 +1,7 @@
+telnet ip 25
+ehlo lo
+mail from: <>
+rcpt to: <>
+Data
+Subject:
+.
